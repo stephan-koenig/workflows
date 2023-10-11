@@ -1,0 +1,47 @@
+name: Zotero2Readwise Auto-sync
+# Adapted from https://github.com/e-alizadeh/Zotero2Readwise-Sync
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: '20 0-23 * * *'
+
+
+jobs:
+  zotero-2-readwise-auto-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.8'
+
+      - name: Install Zotero2Readwise Python package
+        run:  pip install zotero2readwise
+
+      - name: Download Zotero2Readwise Python script
+        run:  curl https://raw.githubusercontent.com/e-alizadeh/Zotero2Readwise/master/zotero2readwise/run.py -o run.py
+
+      - name: 📥 Download helper module
+        run:  curl https://raw.githubusercontent.com/e-alizadeh/Zotero2Readwise/master/zotero2readwise/helper.py -o helper.py
+      
+      - name: Load secret
+        id:   op-load-secret
+        uses: 1password/load-secrets-action@v1
+        with:
+          export-env: false
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+          READWISE_TOKEN: op://github-actions/zotero-2-readwise-auto-sync-readwise/credential
+          ZOTERO_KEY: op://github-actions/zotero-2-readwise-auto-sync-zotero/credential
+          ZOTERO_ID: op://github-actions/zotero-2-readwise-auto-sync-zotero/username
+
+      - name: Run Zotero2Readwise Python script
+        run: |
+          python run.py \
+            ${{ steps.op-load-secret.outputs.READWISE_TOKEN }} \
+            ${{ steps.op-load-secret.outputs.ZOTERO_KEY }} \
+            ${{ steps.op-load-secret.outputs.ZOTERO_ID }}
